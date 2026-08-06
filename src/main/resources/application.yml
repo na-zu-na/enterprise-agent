@@ -1,0 +1,10 @@
+jwt:
+  secret: MySuperSecretKeyForJwtTokenGeneration_2026_NeverShareThis_!@#$%^&*
+  expiration: 7200000
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/enterprise_agent
+    username: postgres
+    password: 199550
+
