@@ -1,5 +1,6 @@
 package org.cc.enterpriseagent.auth.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
@@ -15,6 +16,9 @@ import org.cc.enterpriseagent.user.vo.UserInfoVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 public class AuthServiceImpl extends ServiceImpl<SysUserMapper, SysUser> implements AuthService {
@@ -25,6 +29,7 @@ public class AuthServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impleme
     private JwtUtil  jwtUtil;
 
     @Override
+    @Transactional
     public Result<LoginResponseVO> login(LoginRequestDTO loginRequestDTO) {
         SysUser sysUser = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>()
                 .eq(SysUser::getUsername, loginRequestDTO.getUsername()));
@@ -40,6 +45,12 @@ public class AuthServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impleme
             BeanUtils.copyProperties(sysUser,userInfoVO);
             loginResponseVO.setUser(userInfoVO);
             loginResponseVO.setToken(jwtUtil.generateToken(userInfoVO));
+
+            LocalDateTime now = LocalDateTime.now();
+            sysUserMapper.update(null, new LambdaUpdateWrapper<SysUser>()
+                    .eq(SysUser::getId, sysUser.getId())
+                    .set(SysUser::getLastLoginAt, now)
+                    .set(SysUser::getUpdatedAt, now));
         } else {
             return Result.error(401,"密码错误");
         }
