@@ -1,4 +1,4 @@
-package org.cc.enterpriseagent.dto;
+package org.cc.enterpriseagent.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

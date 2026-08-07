@@ -5,7 +5,6 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import org.cc.enterpriseagent.dto.LoginRequestDTO;
 import org.cc.enterpriseagent.user.vo.UserInfoVO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

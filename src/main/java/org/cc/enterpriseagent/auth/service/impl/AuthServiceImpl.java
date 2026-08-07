@@ -2,14 +2,12 @@ package org.cc.enterpriseagent.auth.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
-import lombok.Data;
 import org.cc.enterpriseagent.auth.service.AuthService;
 import org.cc.enterpriseagent.auth.vo.LoginResponseVO;
 import org.cc.enterpriseagent.common.JwtUtil;
 import org.cc.enterpriseagent.common.Result;
-import org.cc.enterpriseagent.dto.LoginRequestDTO;
+import org.cc.enterpriseagent.auth.dto.LoginRequestDTO;
 import org.cc.enterpriseagent.user.entity.SysUser;
 import org.cc.enterpriseagent.user.mapper.SysUserMapper;
 import org.cc.enterpriseagent.user.vo.UserInfoVO;
