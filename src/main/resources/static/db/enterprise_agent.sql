@@ -184,3 +184,63 @@ CREATE INDEX idx_kb_member_role
 
 CREATE INDEX idx_kb_member_deleted
     ON knowledge_base_member(deleted);
+
+
+--创建文档数据库
+CREATE TABLE knowledge_document
+(
+    id                BIGSERIAL PRIMARY KEY,
+    knowledge_base_id BIGINT       NOT NULL,
+    name              VARCHAR(255) NOT NULL,
+    original_name     VARCHAR(255) NOT NULL,
+    file_type         VARCHAR(32)  NOT NULL,
+    file_size         BIGINT       NOT NULL,
+    storage_path      VARCHAR(500) NOT NULL,
+    status            VARCHAR(32)  NOT NULL DEFAULT 'UPLOADED',
+    version           INTEGER      NOT NULL DEFAULT 1,
+    uploaded_by       BIGINT       NOT NULL,
+    error_message     VARCHAR(500),
+    created_at        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted           BOOLEAN      NOT NULL DEFAULT FALSE,
+
+    CONSTRAINT fk_document_knowledge_base
+        FOREIGN KEY (knowledge_base_id)
+            REFERENCES knowledge_base (id),
+
+    CONSTRAINT fk_document_uploaded_by
+        FOREIGN KEY (uploaded_by)
+            REFERENCES sys_user (id),
+
+    CONSTRAINT ck_document_file_type
+        CHECK (file_type IN ('TXT', 'MD')),
+
+    CONSTRAINT ck_document_file_size
+        CHECK (file_size > 0),
+
+    CONSTRAINT ck_document_status
+        CHECK (status IN ('UPLOADED', 'PROCESSING', 'READY', 'FAILED')),
+
+    CONSTRAINT ck_document_version
+        CHECK (version > 0)
+);
+
+CREATE INDEX idx_document_knowledge_base_id
+    ON knowledge_document (knowledge_base_id);
+
+CREATE INDEX idx_document_uploaded_by
+    ON knowledge_document (uploaded_by);
+
+CREATE INDEX idx_document_status
+    ON knowledge_document (status);
+
+CREATE INDEX idx_document_file_type
+    ON knowledge_document (file_type);
+
+CREATE INDEX idx_document_created_at
+    ON knowledge_document (created_at);
+
+CREATE INDEX idx_document_deleted
+    ON knowledge_document (deleted);
+
+COMMENT ON TABLE knowledge_document IS '知识库文档表';
