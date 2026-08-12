@@ -1,4 +1,4 @@
-package org.cc.enterpriseagent.knowledgebase.document.entity;
+package org.cc.enterpriseagent.document.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;

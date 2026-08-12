@@ -1,5 +1,6 @@
-package org.cc.enterpriseagent.common;
+package org.cc.enterpriseagent.common.config;
 
+import org.cc.enterpriseagent.common.JwtAuthInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;

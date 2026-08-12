@@ -2,6 +2,8 @@ package org.cc.enterpriseagent.knowledgebase.controller;
 
 import jakarta.validation.Valid;
 import org.cc.enterpriseagent.common.Result;
+import org.cc.enterpriseagent.document.vo.DocumentUploadVO;
+import org.cc.enterpriseagent.document.vo.DocumentPageVO;
 import org.cc.enterpriseagent.knowledgebase.dto.CreateKnowledgeBaseRequestDTO;
 import org.cc.enterpriseagent.knowledgebase.dto.UpdateKnowledgeBaseRequestDTO;
 import org.cc.enterpriseagent.knowledgebase.service.KnowledgeBaseService;
@@ -16,7 +18,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -50,5 +54,22 @@ public class KnowledgeBaseController {
     @DeleteMapping("/knowledge-bases/{id}")
     public Result<Void> deleteKnowledgeBase(@PathVariable Long id) {
         return knowledgeBaseService.deleteKnowledgeBase(id);
+    }
+
+    @PostMapping("/knowledge-bases/{id}/documents")
+    public Result<DocumentUploadVO> uploadDocument(@PathVariable Long id,
+                                                    @RequestParam("file") MultipartFile file){
+        return knowledgeBaseService.uploadDocument(id,file);
+    }
+
+    @GetMapping("/knowledge-bases/{id}/documents")
+    public Result<DocumentPageVO> getKnowledgeBaseDocuments(
+            @PathVariable Long id,
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
+            @RequestParam(value = "size", defaultValue = "10") Integer size,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "fileType", required = false) String fileType) {
+        return knowledgeBaseService.getKnowledgeBaseDocuments(id, page, size, keyword, status, fileType);
     }
 }
