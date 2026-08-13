@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.cc.enterpriseagent.common.Result;
 import org.cc.enterpriseagent.document.dto.UpdateDocumentNameRequestDTO;
 import org.cc.enterpriseagent.document.vo.DocumentDetailVO;
+import org.cc.enterpriseagent.document.vo.DocumentPreviewVO;
 import org.cc.enterpriseagent.knowledgebase.service.KnowledgeBaseService;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
@@ -43,5 +44,10 @@ public class DocumentController {
     @GetMapping("/{id}/download")
     public ResponseEntity<Resource> downloadDocument(@PathVariable Long id) {
         return knowledgeBaseService.downloadDocument(id);
+    }
+
+    @GetMapping("/{id}/preview")
+    public Result<DocumentPreviewVO> previewDocument(@PathVariable Long id) {
+        return knowledgeBaseService.previewDocument(id);
     }
 }

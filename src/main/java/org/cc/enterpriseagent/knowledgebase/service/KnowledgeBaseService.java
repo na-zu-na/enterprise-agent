@@ -1,6 +1,7 @@
 package org.cc.enterpriseagent.knowledgebase.service;
 
 import org.cc.enterpriseagent.common.Result;
+import org.cc.enterpriseagent.document.vo.DocumentPreviewVO;
 import org.cc.enterpriseagent.document.vo.DocumentUploadVO;
 import org.cc.enterpriseagent.document.vo.DocumentPageVO;
 import org.cc.enterpriseagent.document.vo.DocumentDetailVO;
@@ -39,4 +40,6 @@ public interface KnowledgeBaseService {
     Result<Void> deleteDocument(Long documentId);
 
     ResponseEntity<Resource> downloadDocument(Long id);
+
+    Result<DocumentPreviewVO> previewDocument(Long id);
 }

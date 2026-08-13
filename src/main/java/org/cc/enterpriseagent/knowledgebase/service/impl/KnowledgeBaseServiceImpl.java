@@ -9,10 +9,7 @@ import org.cc.enterpriseagent.common.Result;
 import org.cc.enterpriseagent.common.UserContext;
 import org.cc.enterpriseagent.document.entity.KnowledgeDocument;
 import org.cc.enterpriseagent.document.mapper.DocumentMapper;
-import org.cc.enterpriseagent.document.vo.DocumentUploadVO;
-import org.cc.enterpriseagent.document.vo.DocumentListVO;
-import org.cc.enterpriseagent.document.vo.DocumentPageVO;
-import org.cc.enterpriseagent.document.vo.DocumentDetailVO;
+import org.cc.enterpriseagent.document.vo.*;
 import org.cc.enterpriseagent.document.dto.UpdateDocumentNameRequestDTO;
 import org.cc.enterpriseagent.knowledgebase.dto.CreateKnowledgeBaseRequestDTO;
 import org.cc.enterpriseagent.knowledgebase.dto.UpdateKnowledgeBaseRequestDTO;
@@ -38,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
@@ -342,6 +340,36 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper,Kn
         } catch (IOException e){
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public Result<DocumentPreviewVO> previewDocument(Long id) {
+        Long  userId=UserContext.getUserId();
+
+        KnowledgeDocument document = documentMapper.selectById(id);
+        if (document == null) {
+            return Result.error(404, "文档不存在");
+        }
+
+        KnowledgeBase knowledgeBase = baseMapper.selectById(document.getKnowledgeBaseId());
+        if (canAccessKnowledgeBase(knowledgeBase, userId)) {
+            return Result.error(403, "暂无权限");
+        }
+
+        Resource file = fileStorageService.load(document.getStoragePath());
+
+        String content;
+        try (InputStream inputStream = file.getInputStream()) {
+            content=new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new RuntimeException("读取问内容失败",e);
+        }
+
+        DocumentPreviewVO documentPreviewVO = new DocumentPreviewVO();
+        BeanUtils.copyProperties(document, documentPreviewVO);
+        documentPreviewVO.setContent(content);
+
+        return Result.success(documentPreviewVO);
     }
 
     private boolean canUpdateKnowledgeBase(KnowledgeBase knowledgeBase,Long userId) {
