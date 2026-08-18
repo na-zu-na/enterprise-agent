@@ -3,17 +3,20 @@ package org.cc.enterpriseagent.document.service.impl;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import org.cc.enterpriseagent.common.Result;
 import org.cc.enterpriseagent.document.api.AiDocumentClient;
+import org.cc.enterpriseagent.document.vo.DocumentChunkResponseVO;
 import org.cc.enterpriseagent.document.dto.DocumentParseRequestDTO;
-import org.cc.enterpriseagent.document.dto.DocumentParseResponseVO;
 import org.cc.enterpriseagent.document.entity.KnowledgeDocument;
 import org.cc.enterpriseagent.document.mapper.DocumentMapper;
+import org.cc.enterpriseagent.document.service.DocumentChunkService;
 import org.cc.enterpriseagent.document.service.DocumentService;
+import org.cc.enterpriseagent.document.vo.DocumentParseResultVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
 
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Objects;
 
 @Service
 public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, KnowledgeDocument> implements DocumentService{
@@ -23,12 +26,22 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, KnowledgeDo
     @Value("${document.storage-root}")
     private String storageRoot;
 
+    @Autowired
+    private DocumentChunkService documentChunkService;
+
+    private static final int MAX_ERROR_MESSAGE_LENGTH = 500;
+
     @Override
-    public Result<DocumentParseResponseVO> parseDocument(Long id) {
+    public Result<DocumentParseResultVO> parseDocument(Long id) {
         KnowledgeDocument knowledgeDocument = baseMapper.selectById(id);
 
         if(knowledgeDocument == null){
             return Result.error(404,"文档不存在");
+        }
+
+        //添加状态判断
+        if (Objects.equals(knowledgeDocument.getStatus(), "PROCESSING")) {
+            return Result.error(500,"文档处理中");
         }
 
         //更新文件状态
@@ -57,28 +70,50 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, KnowledgeDo
         documentParseRequestDTO.setStoragePath(storagePath);
 
         try {
-            Result<DocumentParseResponseVO> aiResponse = aiDocumentClient.parseDocument(documentParseRequestDTO);
+            Result<List<DocumentChunkResponseVO>> aiResponse = aiDocumentClient.parseDocument(documentParseRequestDTO);
             if (aiResponse == null || aiResponse.getCode() == null || aiResponse.getCode() != 200
                     || aiResponse.getData() == null) {
-                String errorMessage = aiResponse == null ? "AI 服务未返回响应" : aiResponse.getMessage();
+                String errorMessage = safeErrorMessage(
+                        aiResponse == null ? "AI 服务未返回响应" : aiResponse.getMessage()
+                );
                 knowledgeDocument.setStatus("FAILED");
                 knowledgeDocument.setErrorMessage(errorMessage);
                 baseMapper.updateById(knowledgeDocument);
                 return Result.error(500, errorMessage);
             }
 
+            //存入chunk
+            documentChunkService.replaceChunks(knowledgeDocument, aiResponse.getData());
+
             knowledgeDocument.setStatus("READY");
+            //清空错误信息
+            knowledgeDocument.setErrorMessage(null);
             baseMapper.updateById(knowledgeDocument);
 
-            return Result.success(aiResponse.getData());
-        } catch (RestClientException e) {
+            DocumentParseResultVO result = new DocumentParseResultVO();
+            result.setDocumentId(knowledgeDocument.getId());
+            result.setStatus("READY");
+            result.setChunkCount(aiResponse.getData().size());
+
+            return Result.success(result);
+        } catch (RuntimeException e) {
+            String errorMessage = safeErrorMessage(e.getMessage());
+
             knowledgeDocument.setStatus("FAILED");
-            knowledgeDocument.setErrorMessage(e.getMessage());
+            knowledgeDocument.setErrorMessage(errorMessage);
             baseMapper.updateById(knowledgeDocument);
 
-            return Result.error(500,e.getMessage());
+            return Result.error(409,e.getMessage());
         }
+    }
 
 
+    private String safeErrorMessage(String message) {
+        if (message == null || message.isBlank()) {
+            return "文档解析失败";
+        }
+        return message.length() <= MAX_ERROR_MESSAGE_LENGTH
+                ? message
+                : message.substring(0, MAX_ERROR_MESSAGE_LENGTH - 3) + "...";
     }
 }

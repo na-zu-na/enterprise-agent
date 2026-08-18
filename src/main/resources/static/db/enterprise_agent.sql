@@ -244,3 +244,71 @@ CREATE INDEX idx_document_deleted
     ON knowledge_document (deleted);
 
 COMMENT ON TABLE knowledge_document IS '知识库文档表';
+
+
+CREATE TABLE document_chunk
+(
+    id                 BIGSERIAL PRIMARY KEY,
+
+    document_id        BIGINT NOT NULL,
+    knowledge_base_id  BIGINT NOT NULL,
+
+    chunk_index        INTEGER NOT NULL,
+    content            TEXT NOT NULL,
+    char_count         INTEGER NOT NULL,
+
+    section_title      VARCHAR(500),
+    section_level      INTEGER,
+
+    metadata           JSONB NOT NULL DEFAULT '{}'::jsonb,
+
+    document_version   INTEGER NOT NULL DEFAULT 1,
+
+    created_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    deleted            BOOLEAN NOT NULL DEFAULT FALSE,
+
+    CONSTRAINT fk_chunk_document
+        FOREIGN KEY (document_id)
+            REFERENCES knowledge_document(id),
+
+    CONSTRAINT fk_chunk_knowledge_base
+        FOREIGN KEY (knowledge_base_id)
+            REFERENCES knowledge_base(id),
+
+    CONSTRAINT ck_chunk_index
+        CHECK (chunk_index >= 0),
+
+    CONSTRAINT ck_chunk_char_count
+        CHECK (char_count > 0),
+
+    CONSTRAINT ck_chunk_section_level
+        CHECK (
+            section_level IS NULL
+                OR section_level BETWEEN 1 AND 6
+            ),
+
+    CONSTRAINT ck_chunk_document_version
+        CHECK (document_version > 0),
+
+    CONSTRAINT uk_document_chunk_index
+        UNIQUE (
+                document_id,
+                document_version,
+                chunk_index
+            )
+);
+
+
+CREATE INDEX idx_document_chunk_document_id
+    ON document_chunk(document_id);
+
+CREATE INDEX idx_document_chunk_knowledge_base_id
+    ON document_chunk(knowledge_base_id);
+
+CREATE INDEX idx_document_chunk_document_version
+    ON document_chunk(document_id, document_version);
+
+CREATE INDEX idx_document_chunk_deleted
+    ON document_chunk(deleted);
