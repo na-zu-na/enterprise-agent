@@ -3,9 +3,11 @@ package org.cc.enterpriseagent.document.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import org.apache.ibatis.type.JdbcType;
+import org.cc.enterpriseagent.common.handler.PgVectorTypeHandler;
 import org.cc.enterpriseagent.common.handler.PostgresJsonbTypeHandler;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -33,6 +35,9 @@ public class DocumentChunk {
     private Map<String, Object> metadata;
 
     private Integer documentVersion;
+
+    @TableField(value = "embedding", typeHandler = PgVectorTypeHandler.class, jdbcType = JdbcType.OTHER)
+    private List<Float> embedding;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

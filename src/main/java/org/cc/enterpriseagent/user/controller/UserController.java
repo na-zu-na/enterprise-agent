@@ -1,6 +1,6 @@
 package org.cc.enterpriseagent.user.controller;
 
-import org.cc.enterpriseagent.common.Result;
+import org.cc.enterpriseagent.common.utils.Result;
 import org.cc.enterpriseagent.user.service.UserService;
 import org.cc.enterpriseagent.user.vo.UserInfoVO;
 import org.springframework.web.bind.annotation.GetMapping;

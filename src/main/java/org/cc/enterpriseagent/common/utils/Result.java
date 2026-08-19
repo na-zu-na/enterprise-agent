@@ -1,4 +1,4 @@
-package org.cc.enterpriseagent.common;
+package org.cc.enterpriseagent.common.utils;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -1,8 +1,7 @@
 package org.cc.enterpriseagent.document.controller;
 
 import jakarta.validation.Valid;
-import org.cc.enterpriseagent.common.Result;
-import org.cc.enterpriseagent.document.vo.DocumentChunkResponseVO;
+import org.cc.enterpriseagent.common.utils.Result;
 import org.cc.enterpriseagent.document.dto.UpdateDocumentNameRequestDTO;
 import org.cc.enterpriseagent.document.service.DocumentService;
 import org.cc.enterpriseagent.document.vo.DocumentDetailVO;
@@ -12,8 +11,6 @@ import org.cc.enterpriseagent.knowledgebase.service.KnowledgeBaseService;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/documents")

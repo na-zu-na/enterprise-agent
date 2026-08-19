@@ -1,7 +1,7 @@
 package org.cc.enterpriseagent.document.service.impl;
 
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
-import org.cc.enterpriseagent.common.Result;
+import org.cc.enterpriseagent.common.utils.Result;
 import org.cc.enterpriseagent.document.api.AiDocumentClient;
 import org.cc.enterpriseagent.document.vo.DocumentChunkResponseVO;
 import org.cc.enterpriseagent.document.dto.DocumentParseRequestDTO;
@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, KnowledgeDocument> implements DocumentService{
@@ -39,14 +38,12 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, KnowledgeDo
             return Result.error(404,"文档不存在");
         }
 
-        //添加状态判断
-        if (Objects.equals(knowledgeDocument.getStatus(), "PROCESSING")) {
-            return Result.error(500,"文档处理中");
+        //修改数据库状态判断并修改状态保证原子性
+        int updated = baseMapper.markProcessingIfAllowed(knowledgeDocument.getId());
+        if (updated==0) {
+            return Result.error(409,"文档处理中");
         }
 
-        //更新文件状态
-        knowledgeDocument.setStatus("PROCESSING");
-        baseMapper.updateById(knowledgeDocument);
 
         DocumentParseRequestDTO documentParseRequestDTO = new DocumentParseRequestDTO();
         documentParseRequestDTO.setDocumentId(id);
@@ -82,12 +79,15 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, KnowledgeDo
                 return Result.error(500, errorMessage);
             }
 
-            //存入chunk
-            documentChunkService.replaceChunks(knowledgeDocument, aiResponse.getData());
+            //存入chunk和embedding
+            boolean replaceStatus = documentChunkService.replaceChunks(knowledgeDocument, aiResponse.getData());
+            if (!replaceStatus) {
+                throw new IllegalStateException("Chunk 保存失败");
+            }
 
-            knowledgeDocument.setStatus("READY");
             //清空错误信息
             knowledgeDocument.setErrorMessage(null);
+            knowledgeDocument.setStatus("READY");
             baseMapper.updateById(knowledgeDocument);
 
             DocumentParseResultVO result = new DocumentParseResultVO();
@@ -103,7 +103,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, KnowledgeDo
             knowledgeDocument.setErrorMessage(errorMessage);
             baseMapper.updateById(knowledgeDocument);
 
-            return Result.error(409,e.getMessage());
+            return Result.error(500, errorMessage);
         }
     }
 

@@ -21,7 +21,7 @@ public class DocumentChunkServiceImpl extends ServiceImpl<DocumentChunkMapper, D
 
     @Override
     @Transactional
-    public void replaceChunks(KnowledgeDocument knowledgeDocument, List<DocumentChunkResponseVO> chunks) {
+    public boolean replaceChunks(KnowledgeDocument knowledgeDocument, List<DocumentChunkResponseVO> chunks) {
         if (chunks == null || chunks.isEmpty()) {
             throw new IllegalStateException("AI未提供有效模块");
         }
@@ -29,9 +29,7 @@ public class DocumentChunkServiceImpl extends ServiceImpl<DocumentChunkMapper, D
         documentChunkMapper.deleteByDocumentId(knowledgeDocument.getId());
 
         List<DocumentChunk> list = chunks.stream().map(chunk -> toEntity(knowledgeDocument, chunk)).toList();
-        saveBatch(list,500);
-
-
+        return saveBatch(list, 500);
     }
 
     private DocumentChunk toEntity(
@@ -47,6 +45,11 @@ public class DocumentChunkServiceImpl extends ServiceImpl<DocumentChunkMapper, D
         target.setChunkIndex(source.getChunkIndex());
         target.setContent(source.getContent());
         target.setCharCount(source.getCharCount());
+
+        if(source.getEmbedding()==null ||  source.getEmbedding().size()!=1024){
+            throw new IllegalStateException("Chunk embedding 必须为 1024 维");
+        }
+        target.setEmbedding(source.getEmbedding());
 
         var meta = source.getMetadata();
         target.setSectionTitle(meta == null ? null : meta.getSectionTitle());

@@ -300,6 +300,9 @@ CREATE TABLE document_chunk
             )
 );
 
+ALTER TABLE document_chunk
+    ADD COLUMN embedding vector(1024);
+
 
 CREATE INDEX idx_document_chunk_document_id
     ON document_chunk(document_id);

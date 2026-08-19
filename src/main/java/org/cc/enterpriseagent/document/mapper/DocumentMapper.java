@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 import org.cc.enterpriseagent.document.entity.KnowledgeDocument;
 import org.cc.enterpriseagent.document.vo.DocumentListVO;
 import org.cc.enterpriseagent.document.vo.DocumentDetailVO;
@@ -55,4 +56,15 @@ public interface DocumentMapper extends BaseMapper<KnowledgeDocument> {
                                               @Param("keyword") String keyword,
                                               @Param("status") String status,
                                               @Param("fileType") String fileType);
+
+    @Update("""
+        update knowledge_document
+        set status='PROCESSING',
+            error_message=null,
+            updated_at=CURRENT_TIMESTAMP
+        where id=#{documentId}
+        and deleted=false
+        and status <> 'PROCESSING'
+    """)
+    int markProcessingIfAllowed(@Param("documentId") Long documentId);
 }

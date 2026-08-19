@@ -3,7 +3,7 @@ package org.cc.enterpriseagent.knowledgebase.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
-import org.cc.enterpriseagent.common.Result;
+import org.cc.enterpriseagent.common.utils.Result;
 import org.cc.enterpriseagent.common.UserContext;
 import org.cc.enterpriseagent.knowledgebase.dto.AddKnowledgeBaseMemberRequestDTO;
 import org.cc.enterpriseagent.knowledgebase.dto.UpdateKnowledgeBaseMemberRoleRequestDTO;

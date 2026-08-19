@@ -1,6 +1,8 @@
 package org.cc.enterpriseagent.document.api;
 
-import org.cc.enterpriseagent.common.Result;
+import org.cc.enterpriseagent.common.utils.Result;
+import org.cc.enterpriseagent.document.dto.EmbeddingRequestDTO;
+import org.cc.enterpriseagent.document.vo.ChunkEmbeddingResponseVO;
 import org.cc.enterpriseagent.document.vo.DocumentChunkResponseVO;
 import org.cc.enterpriseagent.document.dto.DocumentParseRequestDTO;
 import org.springframework.core.ParameterizedTypeReference;

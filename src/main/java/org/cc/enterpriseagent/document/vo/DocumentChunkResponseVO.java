@@ -3,6 +3,8 @@ package org.cc.enterpriseagent.document.vo;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class DocumentChunkResponseVO {
 
@@ -17,6 +19,8 @@ public class DocumentChunkResponseVO {
     private Integer charCount;
 
     private DocumentChunkMetadataVO metadata;
+
+    private List<Float> embedding;
 
     @Data
     public static class DocumentChunkMetadataVO {

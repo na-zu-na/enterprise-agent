@@ -1,7 +1,7 @@
 package org.cc.enterpriseagent.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import org.cc.enterpriseagent.common.Result;
+import org.cc.enterpriseagent.common.utils.Result;
 import org.cc.enterpriseagent.user.entity.SysUser;
 import org.cc.enterpriseagent.user.mapper.SysUserMapper;
 import org.cc.enterpriseagent.user.service.UserService;

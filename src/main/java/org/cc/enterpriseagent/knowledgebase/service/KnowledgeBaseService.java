@@ -1,6 +1,6 @@
 package org.cc.enterpriseagent.knowledgebase.service;
 
-import org.cc.enterpriseagent.common.Result;
+import org.cc.enterpriseagent.common.utils.Result;
 import org.cc.enterpriseagent.document.vo.DocumentPreviewVO;
 import org.cc.enterpriseagent.document.vo.DocumentUploadVO;
 import org.cc.enterpriseagent.document.vo.DocumentPageVO;

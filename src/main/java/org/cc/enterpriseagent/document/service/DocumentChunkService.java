@@ -6,5 +6,5 @@ import org.cc.enterpriseagent.document.entity.KnowledgeDocument;
 import java.util.List;
 
 public interface DocumentChunkService {
-    void replaceChunks(KnowledgeDocument knowledgeDocument,List<DocumentChunkResponseVO> data);
+    boolean replaceChunks(KnowledgeDocument knowledgeDocument,List<DocumentChunkResponseVO> data);
 }
