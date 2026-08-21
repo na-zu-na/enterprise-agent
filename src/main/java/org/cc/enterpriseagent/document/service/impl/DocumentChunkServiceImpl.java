@@ -1,12 +1,14 @@
 package org.cc.enterpriseagent.document.service.impl;
 
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import org.cc.enterpriseagent.document.event.DocumentChunksReplacedEvent;
 import org.cc.enterpriseagent.document.vo.DocumentChunkResponseVO;
 import org.cc.enterpriseagent.document.entity.DocumentChunk;
 import org.cc.enterpriseagent.document.entity.KnowledgeDocument;
 import org.cc.enterpriseagent.document.mapper.DocumentChunkMapper;
 import org.cc.enterpriseagent.document.service.DocumentChunkService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,9 @@ public class DocumentChunkServiceImpl extends ServiceImpl<DocumentChunkMapper, D
     @Autowired
     private DocumentChunkMapper documentChunkMapper;
 
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
+
     @Override
     @Transactional
     public boolean replaceChunks(KnowledgeDocument knowledgeDocument, List<DocumentChunkResponseVO> chunks) {
@@ -29,7 +34,15 @@ public class DocumentChunkServiceImpl extends ServiceImpl<DocumentChunkMapper, D
         documentChunkMapper.deleteByDocumentId(knowledgeDocument.getId());
 
         List<DocumentChunk> list = chunks.stream().map(chunk -> toEntity(knowledgeDocument, chunk)).toList();
-        return saveBatch(list, 500);
+        boolean saved = saveBatch(list, 500);
+        if (!saved) {
+            throw new IllegalStateException("Chunk 保存失败");
+        }
+
+        // 只有当前数据库事务提交成功后，监听器才会真正同步 ES。
+        applicationEventPublisher.publishEvent(new DocumentChunksReplacedEvent(knowledgeDocument.getId()));
+
+        return true;
     }
 
     private DocumentChunk toEntity(

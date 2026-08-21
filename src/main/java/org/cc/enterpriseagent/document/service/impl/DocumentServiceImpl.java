@@ -38,7 +38,13 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, KnowledgeDo
     private KnowledgeBaseService knowledgeBaseService;
 
     @Value("${rag.top-k}")
-    private String topK;
+    private int topK;
+
+    @Value("${rag.candidate-k}")
+    private int candidateK;
+
+    @Value("${rag.rrf-top-k}")
+    private int rrfTopK;
 
     private static final int MAX_ERROR_MESSAGE_LENGTH = 500;
 
@@ -145,7 +151,9 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, KnowledgeDo
             AiRagRequestDTO  aiRagRequestDTO = new AiRagRequestDTO();
             aiRagRequestDTO.setQuery(requestDTO.getQuery());
             aiRagRequestDTO.setKnowledgeBaseIds(requestDTO.getKnowledgeBaseIds());
-            aiRagRequestDTO.setTopK(Integer.valueOf(topK));
+            aiRagRequestDTO.setTopK(topK);
+            aiRagRequestDTO.setCandidateK(candidateK);
+            aiRagRequestDTO.setRrfTopK(rrfTopK);
 
             Result<RagResponseVO> aiResponse = aiDocumentClient.ragQueryDocument(aiRagRequestDTO);
             return aiResponse == null

@@ -7,6 +7,12 @@ spring:
     url: jdbc:postgresql://localhost:5432/enterprise_agent
     username: postgres
     password: 199550
+  elasticsearch:
+    uris: http://localhost:9200
+
+app:
+  elasticsearch:
+    document-chunk-index: document_chunk
 
 ai:
   service:
@@ -17,4 +23,6 @@ document:
 
 rag:
   top-k: 5
+  candidate-k: 30
+  rrf-top-k: 20
 

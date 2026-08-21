@@ -15,4 +15,10 @@ public class AiRagRequestDTO {
 
     @JsonProperty("top_k")
     private Integer topK;
+
+    @JsonProperty("candidate_k")
+    private Integer candidateK;
+
+    @JsonProperty("rrf_top_k")
+    private Integer rrfTopK;
 }

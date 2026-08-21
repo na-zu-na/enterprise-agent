@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import org.cc.enterpriseagent.common.utils.Result;
 import org.cc.enterpriseagent.common.UserContext;
 import org.cc.enterpriseagent.document.entity.KnowledgeDocument;
+import org.cc.enterpriseagent.document.event.DocumentUploadedEvent;
 import org.cc.enterpriseagent.document.mapper.DocumentMapper;
 import org.cc.enterpriseagent.document.vo.*;
 import org.cc.enterpriseagent.document.dto.UpdateDocumentNameRequestDTO;
@@ -26,6 +27,7 @@ import org.cc.enterpriseagent.user.entity.SysUser;
 import org.cc.enterpriseagent.user.mapper.SysUserMapper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -55,6 +57,9 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper,Kn
 
     @Autowired
     private DocumentMapper documentMapper;
+
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @Transactional
@@ -210,6 +215,11 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper,Kn
         document.setUpdatedAt(LocalDateTime.now());
 
         documentMapper.insert(document);
+
+        //发布事件
+        applicationEventPublisher.publishEvent(
+                new DocumentUploadedEvent(document.getId())
+        );
 
         //修改知识库
         baseMapper.update(null, new LambdaUpdateWrapper<KnowledgeBase>()
