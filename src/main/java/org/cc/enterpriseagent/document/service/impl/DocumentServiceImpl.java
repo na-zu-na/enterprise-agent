@@ -1,8 +1,12 @@
 package org.cc.enterpriseagent.document.service.impl;
 
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import org.cc.enterpriseagent.common.UserContext;
 import org.cc.enterpriseagent.common.utils.Result;
 import org.cc.enterpriseagent.document.api.AiDocumentClient;
+import org.cc.enterpriseagent.document.dto.AiRagRequestDTO;
+import org.cc.enterpriseagent.document.dto.RagAskRequestDTO;
+import org.cc.enterpriseagent.document.vo.CitationVO;
 import org.cc.enterpriseagent.document.vo.DocumentChunkResponseVO;
 import org.cc.enterpriseagent.document.dto.DocumentParseRequestDTO;
 import org.cc.enterpriseagent.document.entity.KnowledgeDocument;
@@ -10,6 +14,8 @@ import org.cc.enterpriseagent.document.mapper.DocumentMapper;
 import org.cc.enterpriseagent.document.service.DocumentChunkService;
 import org.cc.enterpriseagent.document.service.DocumentService;
 import org.cc.enterpriseagent.document.vo.DocumentParseResultVO;
+import org.cc.enterpriseagent.document.vo.RagResponseVO;
+import org.cc.enterpriseagent.knowledgebase.service.KnowledgeBaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -27,6 +33,12 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, KnowledgeDo
 
     @Autowired
     private DocumentChunkService documentChunkService;
+
+    @Autowired
+    private KnowledgeBaseService knowledgeBaseService;
+
+    @Value("${rag.top-k}")
+    private String topK;
 
     private static final int MAX_ERROR_MESSAGE_LENGTH = 500;
 
@@ -104,6 +116,43 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, KnowledgeDo
             baseMapper.updateById(knowledgeDocument);
 
             return Result.error(500, errorMessage);
+        }
+    }
+
+    @Override
+    public Result<RagResponseVO> ragQueryDocument(RagAskRequestDTO requestDTO) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Result.error(401, "未登录或登录已过期");
+        }
+
+        List<Long> accessibleKnowledgeBaseIds = knowledgeBaseService
+                .getAccessibleKnowledgeBaseIds(userId);
+        Long requestedKnowledgeBaseId = requestDTO.getKnowledgeBaseIds().get(0);
+        if (requestedKnowledgeBaseId != null) {
+            if (!accessibleKnowledgeBaseIds.contains(requestedKnowledgeBaseId)) {
+                return Result.error(403, "无访问知识库权限");
+            }
+        } else {
+            requestDTO.setKnowledgeBaseIds(accessibleKnowledgeBaseIds);
+        }
+
+        if (requestDTO.getKnowledgeBaseIds().isEmpty()) {
+            return Result.success(null);
+        }
+
+        try {
+            AiRagRequestDTO  aiRagRequestDTO = new AiRagRequestDTO();
+            aiRagRequestDTO.setQuery(requestDTO.getQuery());
+            aiRagRequestDTO.setKnowledgeBaseIds(requestDTO.getKnowledgeBaseIds());
+            aiRagRequestDTO.setTopK(Integer.valueOf(topK));
+
+            Result<RagResponseVO> aiResponse = aiDocumentClient.ragQueryDocument(aiRagRequestDTO);
+            return aiResponse == null
+                    ? Result.error(502, "AI 检索服务未返回响应")
+                    : aiResponse;
+        } catch (RuntimeException e) {
+            return Result.error(502, "AI 检索服务调用失败");
         }
     }
 

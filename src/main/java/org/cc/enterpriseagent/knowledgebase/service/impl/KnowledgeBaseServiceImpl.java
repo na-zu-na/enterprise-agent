@@ -89,6 +89,12 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper,Kn
     }
 
     @Override
+    public List<Long> getAccessibleKnowledgeBaseIds(Long userId) {
+        return userId == null ? List.of()
+                : knowledgeBaseMemberMapper.selectAccessibleKnowledgeBaseIds(userId);
+    }
+
+    @Override
     public Result<KnowledgeBaseDetailVO> getKnowledgeBaseDetail(Long knowledgeBaseId) {
         KnowledgeBaseDetailVO knowledgeBaseDetail = knowledgeBaseMemberMapper
                 .selectAccessibleKnowledgeBaseDetail(knowledgeBaseId, UserContext.getUserId());
@@ -421,7 +427,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper,Kn
         return !isOwner && !isKnowledgeBaseEditorOrAdmin && !isSystemAdmin;
     }
 
-    private boolean canAccessKnowledgeBase(KnowledgeBase knowledgeBase, Long userId) {
+    public boolean canAccessKnowledgeBase(KnowledgeBase knowledgeBase, Long userId) {
         if (knowledgeBase == null || userId == null) {
             return true;
         }

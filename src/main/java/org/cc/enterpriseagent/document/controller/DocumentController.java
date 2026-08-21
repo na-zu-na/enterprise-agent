@@ -2,11 +2,10 @@ package org.cc.enterpriseagent.document.controller;
 
 import jakarta.validation.Valid;
 import org.cc.enterpriseagent.common.utils.Result;
+import org.cc.enterpriseagent.document.dto.RagAskRequestDTO;
 import org.cc.enterpriseagent.document.dto.UpdateDocumentNameRequestDTO;
 import org.cc.enterpriseagent.document.service.DocumentService;
-import org.cc.enterpriseagent.document.vo.DocumentDetailVO;
-import org.cc.enterpriseagent.document.vo.DocumentParseResultVO;
-import org.cc.enterpriseagent.document.vo.DocumentPreviewVO;
+import org.cc.enterpriseagent.document.vo.*;
 import org.cc.enterpriseagent.knowledgebase.service.KnowledgeBaseService;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
@@ -53,5 +52,10 @@ public class DocumentController {
     @PostMapping("/{id}/parse")
     public Result<DocumentParseResultVO> parseDocument(@PathVariable Long id){
         return documentService.parseDocument(id);
+    }
+
+    @PostMapping("/rag/query")
+    public Result<RagResponseVO> ragQueryDocument(@RequestBody RagAskRequestDTO requestDTO){
+        return documentService.ragQueryDocument(requestDTO);
     }
 }

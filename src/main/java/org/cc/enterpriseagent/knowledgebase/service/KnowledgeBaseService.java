@@ -22,6 +22,8 @@ public interface KnowledgeBaseService {
 
     Result<List<KnowledgeBaseListVO>> getAccessibleKnowledgeBases();
 
+    List<Long> getAccessibleKnowledgeBaseIds(Long userId);
+
     Result<KnowledgeBaseDetailVO> getKnowledgeBaseDetail(Long knowledgeBaseId);
 
     Result<Void> updateKnowledgeBase(Long knowledgeBaseId, UpdateKnowledgeBaseRequestDTO requestDTO);

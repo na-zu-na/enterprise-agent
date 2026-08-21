@@ -30,6 +30,27 @@ public interface KnowledgeBaseMemberMapper extends BaseMapper<KnowledgeBaseMembe
     List<KnowledgeBaseListVO> selectAccessibleKnowledgeBases(@Param("userId") Long userId);
 
     @Select("""
+            SELECT DISTINCT kb.id
+            FROM knowledge_base kb
+            INNER JOIN sys_user su ON su.id = #{userId}
+                AND su.deleted = FALSE
+            LEFT JOIN knowledge_base_member kbm
+                ON kbm.knowledge_base_id = kb.id
+                AND kbm.user_id = #{userId}
+                AND kbm.deleted = FALSE
+            WHERE kb.deleted = FALSE
+              AND kb.status = 1
+              AND (
+                    su.role_code = 'SYSTEM_ADMIN'
+                    OR kb.owner_id = #{userId}
+                    OR (kb.visibility = 'PUBLIC' AND su.status = 1)
+                    OR kbm.id IS NOT NULL
+              )
+            ORDER BY kb.id
+            """)
+    List<Long> selectAccessibleKnowledgeBaseIds(@Param("userId") Long userId);
+
+    @Select("""
             SELECT kb.id, kb.name, kb.description, kb.cover_url AS "coverUrl",
                    kb.category, kb.visibility, kb.owner_id AS "ownerId", owner.nickname AS "ownerName",
                    kb.status, kb.document_count AS "documentCount", kb.member_count AS "memberCount",
