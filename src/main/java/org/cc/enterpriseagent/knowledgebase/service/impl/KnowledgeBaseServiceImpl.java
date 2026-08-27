@@ -9,7 +9,9 @@ import org.cc.enterpriseagent.common.utils.Result;
 import org.cc.enterpriseagent.common.UserContext;
 import org.cc.enterpriseagent.document.entity.KnowledgeDocument;
 import org.cc.enterpriseagent.document.event.DocumentUploadedEvent;
+import org.cc.enterpriseagent.document.mapper.DocumentChunkMapper;
 import org.cc.enterpriseagent.document.mapper.DocumentMapper;
+import org.cc.enterpriseagent.document.service.DocumentChunkEsSyncService;
 import org.cc.enterpriseagent.document.vo.*;
 import org.cc.enterpriseagent.document.dto.UpdateDocumentNameRequestDTO;
 import org.cc.enterpriseagent.knowledgebase.dto.CreateKnowledgeBaseRequestDTO;
@@ -43,6 +45,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper,KnowledgeBase> implements KnowledgeBaseService {
@@ -57,6 +60,12 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper,Kn
 
     @Autowired
     private DocumentMapper documentMapper;
+
+    @Autowired
+    private DocumentChunkMapper documentChunkMapper;
+
+    @Autowired
+    private DocumentChunkEsSyncService documentChunkEsSyncService;
 
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
@@ -205,7 +214,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper,Kn
         document.setKnowledgeBaseId(knowledgeBaseId);
         document.setName(documentName);
         document.setOriginalName(originalFilename);
-        document.setFileType(extension);
+        document.setFileType(extension.toUpperCase(Locale.ROOT));
         document.setFileSize(file.getSize());
         document.setStoragePath(filePath);
         document.setStatus("UPLOADED");
@@ -312,11 +321,13 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper,Kn
             return Result.error(403, "无删除文档权限");
         }
 
+        documentChunkMapper.deleteByDocumentId(documentId);
         documentMapper.deleteById(documentId);
         baseMapper.update(null, new LambdaUpdateWrapper<KnowledgeBase>()
                 .eq(KnowledgeBase::getId, document.getKnowledgeBaseId())
                 .setSql("document_count = GREATEST(document_count - 1, 0)")
                 .set(KnowledgeBase::getUpdatedAt, LocalDateTime.now()));
+        documentChunkEsSyncService.deleteByDocumentId(documentId);
         return new Result<>(null, "文档删除成功", 200);
     }
 

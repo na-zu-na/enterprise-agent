@@ -134,7 +134,12 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, KnowledgeDo
 
         List<Long> accessibleKnowledgeBaseIds = knowledgeBaseService
                 .getAccessibleKnowledgeBaseIds(userId);
-        Long requestedKnowledgeBaseId = requestDTO.getKnowledgeBaseIds().get(0);
+
+        Long requestedKnowledgeBaseId=null;
+        if (requestDTO.getKnowledgeBaseIds()!=null && !requestDTO.getKnowledgeBaseIds().isEmpty()){
+            requestedKnowledgeBaseId = requestDTO.getKnowledgeBaseIds().get(0);
+        }
+        
         if (requestedKnowledgeBaseId != null) {
             if (!accessibleKnowledgeBaseIds.contains(requestedKnowledgeBaseId)) {
                 return Result.error(403, "无访问知识库权限");
