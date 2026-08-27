@@ -315,3 +315,79 @@ CREATE INDEX idx_document_chunk_document_version
 
 CREATE INDEX idx_document_chunk_deleted
     ON document_chunk(deleted);
+
+
+CREATE TABLE user_task
+(
+    id          BIGSERIAL PRIMARY KEY,
+
+    user_id     BIGINT       NOT NULL,
+
+    title       VARCHAR(255) NOT NULL,
+
+    description TEXT,
+
+    status      VARCHAR(32)  NOT NULL DEFAULT 'TODO',
+
+    due_at      TIMESTAMP,
+
+    created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    deleted     BOOLEAN      NOT NULL DEFAULT FALSE,
+
+    CONSTRAINT fk_user_task_user
+        FOREIGN KEY (user_id)
+            REFERENCES sys_user (id)
+);
+
+
+CREATE INDEX idx_user_task_user_id
+    ON user_task (user_id);
+
+CREATE INDEX idx_user_task_user_status
+    ON user_task (user_id, status);
+
+
+
+--会话主表
+CREATE TABLE agent_conversation (
+                                    id BIGSERIAL PRIMARY KEY,
+                                    user_id BIGINT NOT NULL,
+                                    title VARCHAR(255),
+                                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                    deleted BOOLEAN NOT NULL DEFAULT FALSE,
+
+                                    CONSTRAINT fk_agent_conversation_user
+                                        FOREIGN KEY (user_id)
+                                            REFERENCES sys_user(id)
+);
+
+CREATE INDEX idx_agent_conversation_user_id
+    ON agent_conversation(user_id);
+
+CREATE INDEX idx_agent_conversation_user_updated
+    ON agent_conversation(user_id, updated_at DESC);
+
+CREATE INDEX idx_agent_conversation_deleted
+    ON agent_conversation(deleted);
+
+
+CREATE TABLE agent_message (
+                               id BIGSERIAL PRIMARY KEY,
+                               conversation_id BIGINT NOT NULL,
+                               role VARCHAR(16) NOT NULL,       -- USER / ASSISTANT
+                               content TEXT NOT NULL,
+                               citations JSONB,
+                               checkpoint JSONB,
+                               created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                               deleted BOOLEAN NOT NULL DEFAULT FALSE,
+
+                               CONSTRAINT fk_agent_message_conversation
+                                   FOREIGN KEY (conversation_id) REFERENCES agent_conversation(id)
+);
+
+CREATE INDEX idx_agent_message_conversation_created
+    ON agent_message(conversation_id, created_at);
