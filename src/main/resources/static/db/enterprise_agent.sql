@@ -380,6 +380,8 @@ CREATE TABLE agent_message (
                                conversation_id BIGINT NOT NULL,
                                role VARCHAR(16) NOT NULL,       -- USER / ASSISTANT
                                content TEXT NOT NULL,
+                               status VARCHAR(32),
+                               approval JSONB,
                                citations JSONB,
                                checkpoint JSONB,
                                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -388,6 +390,10 @@ CREATE TABLE agent_message (
                                CONSTRAINT fk_agent_message_conversation
                                    FOREIGN KEY (conversation_id) REFERENCES agent_conversation(id)
 );
+
+ALTER TABLE agent_message
+    ADD COLUMN IF NOT EXISTS status VARCHAR(32),
+    ADD COLUMN IF NOT EXISTS approval JSONB;
 
 CREATE INDEX idx_agent_message_conversation_created
     ON agent_message(conversation_id, created_at);

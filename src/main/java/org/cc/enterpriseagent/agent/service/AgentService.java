@@ -1,5 +1,7 @@
 package org.cc.enterpriseagent.agent.service;
 
+import jakarta.validation.Valid;
+import org.cc.enterpriseagent.agent.dto.ApprovalResponseRequestDTO;
 import org.cc.enterpriseagent.agent.dto.ChatRequestDTO;
 import org.cc.enterpriseagent.agent.vo.AgentMessageVO;
 import org.cc.enterpriseagent.agent.vo.ConversationVO;
@@ -14,4 +16,8 @@ public interface AgentService {
     Result<List<ConversationVO>> getMyConversations();
 
     Result<List<AgentMessageVO>> getConversationMessages(Long conversationId);
+
+    Result<Void> deleteConversation(Long conversationId);
+
+    Result<AgentResponseVO> respondApproval(@Valid ApprovalResponseRequestDTO requestDTO);
 }

@@ -30,6 +30,11 @@ public class AgentMessage {
     @TableField(value = "checkpoint", typeHandler = PostgresJsonbTypeHandler.class, jdbcType = JdbcType.OTHER)
     private Map<String, Object> checkpoint;
 
+    private String status;
+
+    @TableField(value = "approval", typeHandler = PostgresJsonbTypeHandler.class, jdbcType = JdbcType.OTHER)
+    private Map<String, Object> approval;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 

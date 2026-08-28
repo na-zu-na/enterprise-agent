@@ -1,8 +1,11 @@
 package org.cc.enterpriseagent.agent.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import org.cc.enterpriseagent.agent.dto.AgentApprovalResponseDTO;
 import org.cc.enterpriseagent.agent.dto.AgentChatDTO;
+import org.cc.enterpriseagent.agent.dto.ApprovalResponseRequestDTO;
 import org.cc.enterpriseagent.agent.dto.ChatRequestDTO;
 import org.cc.enterpriseagent.agent.entity.AgentConversation;
 import org.cc.enterpriseagent.agent.entity.AgentMessage;
@@ -11,6 +14,7 @@ import org.cc.enterpriseagent.agent.mapper.AgentMessageMapper;
 import org.cc.enterpriseagent.agent.service.AgentService;
 import org.cc.enterpriseagent.agent.vo.AgentMessageVO;
 import org.cc.enterpriseagent.agent.vo.AgentResponseVO;
+import org.cc.enterpriseagent.agent.vo.ApprovalVO;
 import org.cc.enterpriseagent.agent.vo.ConversationVO;
 import org.cc.enterpriseagent.common.UserContext;
 import org.cc.enterpriseagent.common.utils.Result;
@@ -22,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.web.client.RestClient;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,6 +35,8 @@ public class AgentServiceImpl extends ServiceImpl<AgentMapper, AgentConversation
 
     private static final String USER_ROLE = "USER";
     private static final String ASSISTANT_ROLE = "ASSISTANT";
+    private static final String APPROVAL_REQUIRED_STATUS = "approval_required";
+    private static final String COMPLETED_STATUS = "completed";
 
     @Autowired
     private RestClient restClient;
@@ -75,7 +82,8 @@ public class AgentServiceImpl extends ServiceImpl<AgentMapper, AgentConversation
         }
 
         Long conversationId = conversation.getId();
-        if (!saveMessage(conversationId, USER_ROLE, requestDTO.getQuery(), null, null)) {
+        if (!saveMessage(conversationId, USER_ROLE, requestDTO.getQuery(), null,
+                null, null, null)) {
             markTransactionRollbackOnly();
             return Result.error(500, "用户消息保存失败");
         }
@@ -105,8 +113,8 @@ public class AgentServiceImpl extends ServiceImpl<AgentMapper, AgentConversation
         }
 
         AgentResponseVO response = aiResponse.getData();
-        if (!saveMessage(conversationId, ASSISTANT_ROLE, response.getAnswer(),
-                wrapCitations(response), response.getCheckpoint())) {
+        if (!saveMessage(conversationId, ASSISTANT_ROLE, response.getAnswer(), response.getStatus(),
+                response.getApproval(), wrapCitations(response), response.getCheckpoint())) {
             markTransactionRollbackOnly();
             return Result.error(500, "AI 消息保存失败");
         }
@@ -160,6 +168,97 @@ public class AgentServiceImpl extends ServiceImpl<AgentMapper, AgentConversation
         return Result.success(messages);
     }
 
+    @Override
+    @Transactional
+    public Result<Void> deleteConversation(Long conversationId) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            return Result.error(401, "用户未登录");
+        }
+
+        int deleted = agentMapper.delete(new LambdaQueryWrapper<AgentConversation>()
+                .eq(AgentConversation::getId, conversationId)
+                .eq(AgentConversation::getUserId, userId));
+        if (deleted == 0) {
+            return Result.error(404, "会话不存在或无访问权限");
+        }
+        return Result.success();
+    }
+
+    @Override
+    @Transactional
+    public Result<AgentResponseVO> respondApproval(ApprovalResponseRequestDTO requestDTO) {
+        String token = UserContext.getToken();
+        Long userId = UserContext.getUserId();
+        if (userId == null || token == null) {
+            return Result.error(401, "用户未登录");
+        }
+        AgentConversation conversation = findOwnedConversation(requestDTO.getConversationId(), userId);
+        if (conversation == null) {
+            return Result.error(404, "会话不存在或无访问权限");
+        }
+
+        AgentMessage pendingApprovalMessage = null;
+        if (Boolean.TRUE.equals(requestDTO.getApproved())) {
+            pendingApprovalMessage = findPendingApprovalMessage(conversation.getId(), requestDTO.getInterruptId());
+            if (pendingApprovalMessage == null) {
+                return Result.error(404, "待审批消息不存在或已处理");
+            }
+        }
+
+        AgentApprovalResponseDTO agentApprovalResponseDTO = new AgentApprovalResponseDTO();
+        agentApprovalResponseDTO.setConversationId(requestDTO.getConversationId());
+        agentApprovalResponseDTO.setApproved(requestDTO.getApproved());
+        agentApprovalResponseDTO.setInterruptId(requestDTO.getInterruptId());
+
+        try {
+            Result<AgentResponseVO> response=restClient.post()
+                    .uri("/agent/approvals/respond")
+                    .header("Authorization", "Bearer " + token)
+                    .body(agentApprovalResponseDTO)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<Result<AgentResponseVO>>() {});
+            if (response == null || response.getCode() == null || response.getData() == null) {
+                return Result.error(500,"AI服务调用失败");
+            }
+
+            if (response.getCode() != 200) {
+                return Result.error(response.getCode(),response.getMessage());
+            }
+
+            AgentResponseVO agentResponse = response.getData();
+            if (pendingApprovalMessage != null && agentMessageMapper.update(null,
+                    new LambdaUpdateWrapper<AgentMessage>()
+                            .eq(AgentMessage::getId, pendingApprovalMessage.getId())
+                            .eq(AgentMessage::getStatus, APPROVAL_REQUIRED_STATUS)
+                            .set(AgentMessage::getStatus, COMPLETED_STATUS)) <= 0) {
+                markTransactionRollbackOnly();
+                return Result.error(409, "Approval has already been processed");
+            }
+
+            if (!saveMessage(conversation.getId(), ASSISTANT_ROLE, agentResponse.getAnswer(),
+                    agentResponse.getStatus(), agentResponse.getApproval(),
+                    wrapCitations(agentResponse), agentResponse.getCheckpoint())) {
+                markTransactionRollbackOnly();
+                return Result.error(500, "AI message save failed");
+            }
+
+            if (agentResponse.getTitle() != null && !agentResponse.getTitle().isBlank()) {
+                conversation.setTitle(agentResponse.getTitle());
+            }
+            if (agentMapper.updateById(conversation) <= 0) {
+                markTransactionRollbackOnly();
+                return Result.error(500, "Conversation update failed");
+            }
+
+            agentResponse.setConversationId(conversation.getId());
+            return Result.success(agentResponse);
+        } catch (Exception e) {
+            markTransactionRollbackOnly();
+            return Result.error(502, "AI service call failed");
+        }
+    }
+
     private List<Long> resolveKnowledgeBaseIds(Long userId, List<Long> requestedKnowledgeBaseIds) {
         List<Long> accessibleKnowledgeBaseIds = knowledgeBaseService.getAccessibleKnowledgeBaseIds(userId);
         if (requestedKnowledgeBaseIds == null || requestedKnowledgeBaseIds.isEmpty()) {
@@ -179,15 +278,34 @@ public class AgentServiceImpl extends ServiceImpl<AgentMapper, AgentConversation
                 .eq(AgentConversation::getUserId, userId));
     }
 
-    private boolean saveMessage(Long conversationId, String role, String content,
+    private AgentMessage findPendingApprovalMessage(Long conversationId, String interruptId) {
+        return agentMessageMapper.selectList(new LambdaQueryWrapper<AgentMessage>()
+                        .eq(AgentMessage::getConversationId, conversationId)
+                        .eq(AgentMessage::getRole, ASSISTANT_ROLE)
+                        .eq(AgentMessage::getStatus, APPROVAL_REQUIRED_STATUS))
+                .stream()
+                .filter(message -> message.getApproval() != null
+                        && interruptId.equals(message.getApproval().get("interrupt_id")))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean saveMessage(Long conversationId, String role, String content, String status,
+                                ApprovalVO approvalVO,
                                 Map<String, Object> citations, Map<String, Object> checkpoint) {
         if (content == null || content.isBlank()) {
-            return false;
+            if (approvalVO == null) {
+                return false;
+            } else {
+                content = "操作等待审批：" + approvalVO.getAction();
+            }
         }
         AgentMessage message = new AgentMessage();
         message.setConversationId(conversationId);
         message.setRole(role);
         message.setContent(content);
+        message.setStatus(status);
+        message.setApproval(toApprovalMap(approvalVO));
         message.setCitations(citations);
         message.setCheckpoint(checkpoint);
         return agentMessageMapper.insert(message) > 0;
@@ -214,8 +332,36 @@ public class AgentServiceImpl extends ServiceImpl<AgentMapper, AgentConversation
         vo.setContent(message.getContent());
         vo.setCitations(message.getCitations());
         vo.setCheckpoint(message.getCheckpoint());
+        vo.setStatus(message.getStatus());
+        vo.setApproval(toApprovalVO(message.getApproval()));
         vo.setCreatedAt(message.getCreatedAt());
         return vo;
+    }
+
+    private Map<String, Object> toApprovalMap(ApprovalVO approval) {
+        if (approval == null) {
+            return null;
+        }
+        Map<String, Object> approvalMap = new HashMap<>();
+        approvalMap.put("interrupt_id", approval.getInterruptId());
+        approvalMap.put("action", approval.getAction());
+        approvalMap.put("payload", approval.getPayload());
+        return approvalMap;
+    }
+
+    @SuppressWarnings("unchecked")
+    private ApprovalVO toApprovalVO(Map<String, Object> approvalMap) {
+        if (approvalMap == null) {
+            return null;
+        }
+        ApprovalVO approval = new ApprovalVO();
+        approval.setInterruptId((String) approvalMap.get("interrupt_id"));
+        approval.setAction((String) approvalMap.get("action"));
+        Object payload = approvalMap.get("payload");
+        if (payload instanceof Map<?, ?>) {
+            approval.setPayload((Map<String, Object>) payload);
+        }
+        return approval;
     }
 
     private void markTransactionRollbackOnly() {

@@ -14,4 +14,6 @@ public class AgentMessageVO {
     private Map<String, Object> citations;
     private Map<String, Object> checkpoint;
     private LocalDateTime createdAt;
+    private String status;
+    private ApprovalVO approval;
 }

@@ -1,6 +1,7 @@
 package org.cc.enterpriseagent.agent.controller;
 
 import jakarta.validation.Valid;
+import org.cc.enterpriseagent.agent.dto.ApprovalResponseRequestDTO;
 import org.cc.enterpriseagent.agent.dto.ChatRequestDTO;
 import org.cc.enterpriseagent.agent.service.AgentService;
 import org.cc.enterpriseagent.agent.vo.AgentMessageVO;
@@ -9,6 +10,7 @@ import org.cc.enterpriseagent.agent.vo.ConversationVO;
 import org.cc.enterpriseagent.common.utils.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,5 +38,16 @@ public class AgentController {
     @GetMapping("/agent/conversations/{conversationId}/messages")
     public Result<List<AgentMessageVO>> getConversationMessages(@PathVariable Long conversationId) {
         return agentService.getConversationMessages(conversationId);
+    }
+
+    @DeleteMapping("/agent/conversations/{conversationId}")
+    public Result<Void> deleteConversation(@PathVariable Long conversationId) {
+        return agentService.deleteConversation(conversationId);
+    }
+
+    @PostMapping("/agent/approvals/respond")
+    public Result<AgentResponseVO> respondApproval(
+            @Valid @RequestBody ApprovalResponseRequestDTO requestDTO) {
+        return agentService.respondApproval(requestDTO);
     }
 }
